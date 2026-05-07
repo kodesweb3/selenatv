@@ -87,24 +87,24 @@ cd aegis-tv/webos-app
 ares-package .
 ```
 
-This creates `com.aegis.tv_1.0.0_all.ipk`
+This creates `com.selena.tv_1.0.0_all.ipk` (vezi `appinfo.json`)
 
 ### 3. Install on TV
 
 ```bash
-ares-install --device aegis-tv com.aegis.tv_1.0.0_all.ipk
+ares-install --device aegis-tv com.selena.tv_1.0.0_all.ipk
 ```
 
 ### 4. Launch on TV
 
 ```bash
-ares-launch --device aegis-tv com.aegis.tv
+ares-launch --device aegis-tv com.selena.tv
 ```
 
 ### 5. View Logs (Debug)
 
 ```bash
-ares-inspect --device aegis-tv --app com.aegis.tv --open
+ares-inspect --device aegis-tv --app com.selena.tv --open
 ```
 
 This opens Chrome DevTools connected to the TV app.
@@ -142,15 +142,20 @@ pm2 save
 pm2 startup
 ```
 
-### Option C: Railway (Cloud)
+### Option C: Railway (Cloud) — SelenaTV backend deja deployat
 
-1. Go to [railway.app](https://railway.app)
-2. Create a new project from GitHub
-3. Point to the `backend/` folder
-4. Set environment variables from `.env`
-5. Deploy
+**URL public (exemplu):** `https://selenatv-production.up.railway.app`
 
-Update `BASE_URL` in the webOS app to the Railway URL.
+1. În Railway: proiect nou sau serviciu Node, **Root Directory** = `aegis-tv/backend` (dacă repo-ul e rădăcina SelenaTV).
+2. Variabile recomandate: vezi `backend/.env.example`. Opțional `SELENA_ADMIN_KEY` pentru `POST /api/admin/recategorize`.
+3. **Atenție:** fișierele din `storage/` nu sunt persistente între redeploy-uri fără **Volume** pe Railway — după deploy rece rulează scan-ul inițial sau folosește un volume montat pe `storage`.
+
+În aplicația webOS setezi backend-ul la URL-ul HTTPS Railway (fără slash final), ex. în **Setări** prin cache sau editând în dev `js/cache.js` default `backendUrl`.
+
+```javascript
+// Exemplu implicit pentru producție (doar dacă îl adaugi în cod)
+backendUrl: 'https://selenatv-production.up.railway.app'
+```
 
 ---
 
@@ -164,10 +169,10 @@ cd webos-app
 ares-package .
 
 # Re-install (overwrites previous)
-ares-install --device aegis-tv com.aegis.tv_1.0.0_all.ipk
+ares-install --device aegis-tv com.selena.tv_1.0.0_all.ipk
 
 # Re-launch
-ares-launch --device aegis-tv com.aegis.tv
+ares-launch --device aegis-tv com.selena.tv
 ```
 
 ---
