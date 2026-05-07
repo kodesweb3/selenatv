@@ -170,6 +170,8 @@ backendUrl: 'https://selenatv-production.up.railway.app'
 
 ## Updating the App
 
+După modificări, verifică rapid pe televizor: **sus** meniu (Acasă / Canale / Favorite) ↔ **hub categorii** ↔ **grilă canale**; **Back** din player și din grilă; **căutare**; **galben** = favorit.
+
 After making changes:
 
 ```bash
