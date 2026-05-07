@@ -1,0 +1,35 @@
+# Deploy backend when aegis-tv/backend changes.
+# Secrets (Repo → Settings → Secrets → Actions):
+#   RAILWAY_TOKEN        — https://railway.com/account/tokens
+#   RAILWAY_PROJECT_ID   — Railway project UUID (Dashboard → project settings)
+#   RAILWAY_SERVICE_ID   — Service UUID (service settings)
+#
+name: Deploy backend (Railway)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'aegis-tv/backend/**'
+      - '.github/workflows/deploy-backend-railway.yml'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Upload & deploy
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
+          RAILWAY_SERVICE_ID: ${{ secrets.RAILWAY_SERVICE_ID }}
+        working-directory: aegis-tv/backend
+        run: railway up --detach -c -p "$RAILWAY_PROJECT_ID" -s "$RAILWAY_SERVICE_ID"

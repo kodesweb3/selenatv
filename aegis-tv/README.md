@@ -34,6 +34,17 @@ Private Node.js Backend
 
 ---
 
+## Deploy backend (GitHub → Railway)
+
+1. Railway: **Account → Tokens** → creezi un token.
+2. GitHub repo → **Settings → Secrets and variables → Actions** → adaugi:
+   - `RAILWAY_TOKEN`
+   - `RAILWAY_PROJECT_ID` (UUID proiect)
+   - `RAILWAY_SERVICE_ID` (UUID serviciu backend)
+3. La fiecare push pe `main` care modifică `aegis-tv/backend/**`, workflow-ul `.github/workflows/deploy-backend-railway.yml` rulează deploy.
+
+---
+
 ## Quick Start
 
 ### 1. Install Backend Dependencies

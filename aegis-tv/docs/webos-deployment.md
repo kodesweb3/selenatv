@@ -177,6 +177,15 @@ ares-launch --device aegis-tv com.selena.tv
 
 ---
 
+## Pot instala aplicația de pe stick USB?
+
+**În mod normal, nu** — pe webOS TV LG oficial, pachetele **`.ipk`** se instalează prin **webOS CLI** (`ares-install`) peste **rețea**, cu **Developer Mode** + **Key Server**, nu prin „copy pe USB → instalare” ca la un APK Android pe televizoare ce permit sideload.
+
+- **Fluxul suportat de LG:** PC-ul și TV-ul în același LAN → `ares-package` → `ares-install --device … *.ipk`.
+- **USB:** nu există în ghidul oficial un pas „introduceți stick-ul și deschideți IPK-ul” pe firmware-ul standard. Dacă pe un model apare vreun meniu experimental de dezvoltator, diferă pe versiuni — nu te baza pe asta pentru livrare.
+
+---
+
 ## Troubleshooting
 
 | Issue | Solution |
@@ -193,7 +202,8 @@ ares-launch --device aegis-tv com.selena.tv
 
 ## Network Requirements
 
-- TV and backend must be on the **same local network**
-- Backend needs **internet access** to scan IPTV sources
-- TV needs **internet access** for Google Fonts and HLS.js CDN
-  - Or bundle these locally for fully offline operation
+- Pentru **instalare** (`ares-install`), PC-ul și TV-ul trebuie în același LAN (și Developer Mode pornit).
+- Pentru **folosirea app-ului** cu backend în cloud (ex. Railway), TV-ul are nevoie doar de **internet** către URL-ul HTTPS al API-ului.
+- Cu backend **local** (PC/Pi), TV și backend trebuie să poată ajunge unul la celălalt (de obicei același Wi‑Fi).
+- Backend-ul are nevoie de **internet** pentru scan IPTV (dacă îl folosești).
+- TV folosește **Google Fonts** și **HLS.js** de pe CDN; le poți încorpora local pentru mod aproape offline.
