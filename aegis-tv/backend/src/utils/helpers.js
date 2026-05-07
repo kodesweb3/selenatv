@@ -51,12 +51,42 @@ function sanitize(str) {
 }
 
 /**
+ * Normalize channel title for matching (PRO TV / PROTV / HD / 4K / paranteze).
+ */
+function normalizeChannelNameForMatch(raw) {
+  if (!raw) return '';
+  let s = String(raw)
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '');
+  s = s.replace(/\([^)]*\)/g, ' ');
+  s = s.replace(/\[[^\]]*\]/g, ' ');
+  s = s.replace(/\s*[–—|:]+\s*/g, ' ');
+  s = s.replace(/\b(fsd|fhd|qhd|uhd|sd|hd|4k|8k|2160p?|1080p?|720p?|ultra\s*hd|full\s*hd)\b/gi, ' ');
+  s = s.replace(/\bpro\s*tv\b/gi, 'protv');
+  s = s.replace(/\bprima\s*tv\b/gi, 'primatv');
+  s = s.replace(/\bdigi\s*24\b/gi, 'digi24');
+  s = s.replace(/\bdigi\s*sport\b/gi, 'digisport');
+  s = s.replace(/\btelekom\s*sport\b/gi, 'telekomsport');
+  s = s.replace(/\bantena\s*(\d+|stars?)\b/gi, (_, a) => 'antena' + String(a).replace(/\s+/g, ''));
+  s = s.replace(/\bkanal\s*d\b/gi, 'kanald');
+  s = s.replace(/\beurosport\b/gi, 'eurosport');
+  s = s.replace(/\blook\s*(\+|plus|sport)?\b/gi, (m) => m.replace(/\s+/g, ''));
+  s = s.replace(/\btvr\s*(international|i)\b/gi, 'tvri');
+  s = s.replace(/\btvr\s*(\d+)\b/gi, (_, d) => 'tvr' + d);
+  s = s.replace(/\bromania\s*tv\b/gi, 'romaniatv');
+  s = s.replace(/\brealitatea\b/gi, 'realitatea');
+  s = s.replace(/[^a-z0-9]+/g, '');
+  return s;
+}
+
+/**
  * Categorize a Romanian channel by name — ROMANIAN CATEGORIES
  * Order matters: first matching rule wins.
  */
 function categorizeChannel(name) {
   const n = name.toLowerCase();
-  if (/sport|digi sport|gsp|eurosport|look sport|telecom sport|prima sport|tvr sport|orange sport|sport\.ro|liga|champions|fotbal/i.test(n)) return 'Sport';
+  if (/sport|digi sport|gsp|eurosport|look sport|telekom sport|prima sport|tvr sport|orange sport|sport\.ro|liga|champions|fotbal/i.test(n)) return 'Sport';
   if (/cartoon|minimax|disney|nick|boomerang|jimjam|duck|kids|copii|baby|junior|megamax/i.test(n)) return 'Copii';
   if (/music|kiss|mtv|zu tv|magic|etno|hit music|music channel|radio|profm|rock fm|gold fm/i.test(n)) return 'Muzică';
   if (/hbo|film|cinema|cinemax|paramount|amc|ax[nx]|pro cinema|film now|tv1000|movie|thriller/i.test(n)) return 'Filme';
@@ -71,6 +101,7 @@ function categorizeChannel(name) {
   if (/travel|mix travel|discovery(?! science)|viasat explore|viasat nature|\bdocu|documentar|explore|digi life|digi world|investiga|crime\s+investigation|\bid\b|earth|\bnature\b(?!\s+wild)/i.test(n)) return 'Documentare';
   if (/local|regional|telem|est tv|nord|litoral|ardeal|banat|moldova|oltenia|maramures|sibiu|timis|arad|cluj|iasi|brasov|craiova|oradea|tvr cluj|tvr iasi|tvr timis|tvr moldova|tvr craiova|tvr tg/i.test(n)) return 'Regional';
   if (/food|cooking|bucătărie|culinare|paprika|lifestyle|home\s*&|fashion|diva|\btlc\b|e!|entertainment/i.test(n)) return 'Lifestyle';
+  if (/\b4k\b|\buhd\b|2160|ultra\s*hd|\(uhd\)/i.test(n)) return '4K';
   return 'General';
 }
 
@@ -199,5 +230,6 @@ module.exports = {
   retry,
   sanitize,
   categorizeChannel,
+  normalizeChannelNameForMatch,
   KNOWN_CHANNELS,
 };

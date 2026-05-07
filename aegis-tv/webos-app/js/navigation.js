@@ -196,23 +196,37 @@ const AegisNav = (function() {
     if (!element) return;
 
     const scrollParent = findScrollParent(element);
-    if (!scrollParent) return;
+    if (scrollParent) {
+      const scrollRect = scrollParent.getBoundingClientRect();
+      const elemRect = element.getBoundingClientRect();
 
-    const scrollRect = scrollParent.getBoundingClientRect();
-    const elemRect = element.getBoundingClientRect();
+      // Horizontal scroll (ex. rânduri orizontale)
+      if (elemRect.right > scrollRect.right) {
+        scrollParent.scrollLeft += elemRect.right - scrollRect.right + 40;
+      } else if (elemRect.left < scrollRect.left) {
+        scrollParent.scrollLeft -= scrollRect.left - elemRect.left + 40;
+      }
 
-    // Horizontal scroll
-    if (elemRect.right > scrollRect.right) {
-      scrollParent.scrollLeft += elemRect.right - scrollRect.right + 40;
-    } else if (elemRect.left < scrollRect.left) {
-      scrollParent.scrollLeft -= scrollRect.left - elemRect.left + 40;
+      // Vertical scroll în ancestor direct
+      if (elemRect.bottom > scrollRect.bottom) {
+        scrollParent.scrollTop += elemRect.bottom - scrollRect.bottom + 40;
+      } else if (elemRect.top < scrollRect.top) {
+        scrollParent.scrollTop -= scrollRect.top - elemRect.top + 40;
+      }
     }
 
-    // Vertical scroll
-    if (elemRect.bottom > scrollRect.bottom) {
-      scrollParent.scrollTop += elemRect.bottom - scrollRect.bottom + 40;
-    } else if (elemRect.top < scrollRect.top) {
-      scrollParent.scrollTop -= scrollRect.top - elemRect.top + 40;
+    // Zona principală de defilare (webOS): cardurile pot sta într-un părinte doar cu overflow-x,
+    // deci forțăm și alinierea în #main-content.
+    const main = document.getElementById('main-content');
+    if (main && main.contains(element)) {
+      const mr = main.getBoundingClientRect();
+      const er = element.getBoundingClientRect();
+      const pad = 48;
+      if (er.bottom > mr.bottom - pad) {
+        main.scrollTop += er.bottom - mr.bottom + pad;
+      } else if (er.top < mr.top + pad) {
+        main.scrollTop -= mr.top - er.top + pad;
+      }
     }
   }
 
@@ -283,7 +297,7 @@ const AegisNav = (function() {
       select();
       return true;
     });
-    AegisRemote.on([AegisRemote.KEY.BACK, AegisRemote.KEY.BACK_ALT], () => { back(); return true; });
+    AegisRemote.on([AegisRemote.KEY.BACK, AegisRemote.KEY.BACK_ALT, AegisRemote.KEY.BACK_WEBOS2], () => { back(); return true; });
 
     console.log('[Nav] Spatial navigation initialized');
   }

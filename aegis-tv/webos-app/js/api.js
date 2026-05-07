@@ -13,6 +13,10 @@ const AegisAPI = (function() {
     BASE_URL = url.replace(/\/$/, '');
   }
 
+  function getBaseUrl() {
+    return BASE_URL;
+  }
+
   /**
    * Generic fetch wrapper with timeout and error handling
    */
@@ -112,6 +116,7 @@ const AegisAPI = (function() {
 
   return {
     setBaseUrl,
+    getBaseUrl,
     getChannels,
     getChannel,
     getCategories,

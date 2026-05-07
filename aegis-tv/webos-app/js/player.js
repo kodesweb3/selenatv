@@ -63,7 +63,7 @@ const AegisPlayer = (function() {
     AegisRemote.on(AegisRemote.KEY.YELLOW, () => {
       if (isActive() && currentChannel) {
         const isFav = AegisCache.toggleFavorite(currentChannel.id);
-        AegisUI.showToast(isFav ? '★ Adăugat la Favorite' : '☆ Șters din Favorite');
+        AegisUI.showToast(isFav ? 'Adăugat la favorite' : 'Eliminat din favorite');
         return true;
       }
     });
@@ -189,8 +189,23 @@ const AegisPlayer = (function() {
     if (dom.channelQuality) dom.channelQuality.textContent = channel.quality || 'HD';
 
     if (dom.channelLogo) {
-      dom.channelLogo.src = channel.logo || '';
-      dom.channelLogo.onerror = function() { this.style.display = 'none'; };
+      const raw = channel.logo || '';
+      const base = typeof AegisAPI !== 'undefined' && AegisAPI.getBaseUrl ? AegisAPI.getBaseUrl() : '';
+      let src = raw;
+      if (raw && !/^https?:\/\//i.test(raw) && !raw.startsWith('data:') && base) {
+        src = base + (raw.startsWith('/') ? raw : '/' + raw);
+      }
+      dom.channelLogo.style.display = '';
+      dom.channelLogo.alt = channel.name || '';
+      const letter = (channel.name || '?').trim().charAt(0).toUpperCase() || 'TV';
+      const ph = 'data:image/svg+xml,' + encodeURIComponent(
+        `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80"><rect fill="#121212" width="120" height="80"/><text x="60" y="50" text-anchor="middle" fill="#C6A972" font-size="32" font-family="system-ui,sans-serif">${letter}</text></svg>`
+      );
+      dom.channelLogo.src = src || ph;
+      dom.channelLogo.onerror = function() {
+        this.onerror = null;
+        this.src = ph;
+      };
     }
 
     // EPG info

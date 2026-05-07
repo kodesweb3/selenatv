@@ -32,14 +32,31 @@ const PLAYLIST_SOURCES = [
 ];
 
 /**
+ * Extra M3U URLs from env: comma/semicolon/newline-separated.
+ * Exemplu în Railway: EXTRA_M3U_URLS=https://example.com/my-list.m3u
+ */
+function playlistSourcesFromEnv() {
+  const raw = process.env.EXTRA_M3U_URLS || '';
+  return raw
+    .split(/[\s,;]+/g)
+    .map((s) => s.trim())
+    .filter((u) => u.startsWith('http://') || u.startsWith('https://'));
+}
+
+/**
  * Scan all known sources and return aggregated Romanian channels
  */
 async function scanAllSources() {
+  const extra = playlistSourcesFromEnv();
+  if (extra.length > 0) {
+    log.info('Scanner', `➕ EXTRA_M3U_URLS: ${extra.length} URL(uri) adiționale din mediu`);
+  }
+  const sources = [...PLAYLIST_SOURCES, ...extra];
   log.info('Scanner', '🔍 Starting IPTV source scan...');
   const allChannels = [];
   const errors = [];
 
-  for (const source of PLAYLIST_SOURCES) {
+  for (const source of sources) {
     try {
       const channels = await scanSource(source);
       allChannels.push(...channels);
@@ -99,4 +116,5 @@ module.exports = {
   scanAllSources,
   scanSource,
   PLAYLIST_SOURCES,
+  playlistSourcesFromEnv,
 };

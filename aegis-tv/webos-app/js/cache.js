@@ -8,9 +8,9 @@ const AegisCache = (function() {
 
   const PREFIX = 'aegis_';
   const TTL = {
-    channels: 30 * 60 * 1000,    // 30 minutes
-    categories: 60 * 60 * 1000,   // 1 hour
-    featured: 30 * 60 * 1000,     // 30 minutes
+    channels: 7 * 24 * 60 * 60 * 1000,    // 7 zile — listă stabilă, refresh în fundal
+    categories: 7 * 24 * 60 * 60 * 1000,
+    featured: 24 * 60 * 60 * 1000,        // 24 ore
     epg: 60 * 60 * 1000,          // 1 hour
     favorites: Infinity,           // Never expires
     recent: Infinity,              // Never expires

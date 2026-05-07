@@ -1,27 +1,33 @@
 /**
- * SelenaTV — UI Renderer
- * Rânduri pe categorii, căutare, filtre și favorite
+ * SelenaTV — UI: hub categorii (pictograme SVG) + grilă canale, căutare, favorite
  */
 
 const AegisUI = (function() {
   'use strict';
 
+  const GRID_COLS = 5;
+  const ZONE_TOP_NAV = 'top-nav';
+  const ZONE_CAT_HUB = 'category-hub';
+  const ZONE_CHANNEL_GRID = 'channel-grid-main';
+  const ZONE_CHANNEL_SEARCH = 'channel-grid-search';
+
   let allChannels = [];
   let categories = [];
   let featuredChannels = [];
   let currentView = 'home';
-  /** @type {string|null} */
-  let categoryFilter = null;
   let searchQuery = '';
-  let contentRowZones = [];
-  let contentRowIndex = 0;
-  let homeUpDownWired = false;
+  let hubNavWired = false;
+
+  /** @type {'hub'|'grid'} */
+  let browseMode = 'hub';
+  /** @type {string|null} */
+  let gridCategory = null;
 
   let dom = {};
 
   const CATEGORY_FALLBACK_ORDER = [
-    'Știri', 'Info', 'Sport', 'Filme', 'Documentare', 'Istorie', 'Știință și natură',
-    'Muzică', 'Copii', 'Lifestyle', 'Regional', 'General',
+    'Știri', 'Info', 'Sport', '4K', 'Filme', 'Documentare', 'Istorie', 'Știință și natură',
+    'Muzică', 'Copii', 'Lifestyle', 'Regional', 'General', 'Ultra HD',
   ];
 
   function rowSlug(name) {
@@ -55,7 +61,7 @@ const AegisUI = (function() {
     const fromCh = {};
     for (const ch of chans) {
       const n = ch.category || 'General';
-      if (!fromCh[n]) fromCh[n] = { name: n, count: 0, icon: categoryIcon(n) };
+      if (!fromCh[n]) fromCh[n] = { name: n, count: 0 };
       fromCh[n].count++;
     }
     const merged = [...(cats || [])];
@@ -78,25 +84,6 @@ const AegisUI = (function() {
     });
   }
 
-  function categoryIcon(name) {
-    const icons = {
-      'Știri': '📰',
-      'Info': 'ℹ️',
-      'General': '📺',
-      'Sport': '⚽',
-      'Muzică': '🎵',
-      'Copii': '🧸',
-      'Filme': '🎬',
-      'Documentare': '🎞️',
-      'Documentar': '🎞️',
-      'Istorie': '🏛️',
-      'Știință și natură': '🔬',
-      'Regional': '🏘️',
-      'Lifestyle': '✨',
-    };
-    return icons[name] || '📺';
-  }
-
   function filterBySearch(channels) {
     const q = (searchQuery || '').trim().toLowerCase();
     if (!q) return channels;
@@ -107,13 +94,120 @@ const AegisUI = (function() {
     );
   }
 
-  function filterByCategory(channels) {
-    if (!categoryFilter) return channels;
-    return channels.filter(ch => (ch.category || 'General') === categoryFilter);
+  function getWorkingChannels() {
+    return filterBySearch(allChannels);
   }
 
-  function getWorkingChannels() {
-    return filterByCategory(filterBySearch(allChannels));
+  function resolveLogoUrl(logo) {
+    if (!logo) return '';
+    const s = String(logo).trim();
+    if (/^https?:\/\//i.test(s) || s.startsWith('data:')) return s;
+    const base = typeof AegisAPI !== 'undefined' && AegisAPI.getBaseUrl ? AegisAPI.getBaseUrl() : '';
+    if (!base) return s;
+    return base + (s.startsWith('/') ? s : '/' + s);
+  }
+
+  function logoPlaceholderDataUri(name) {
+    const letter = (name || '?').trim().charAt(0).toUpperCase() || 'TV';
+    const enc = encodeURIComponent(
+      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80"><rect fill="#1a1a1a" width="120" height="80"/><text x="60" y="48" text-anchor="middle" fill="#C6A972" font-family="system-ui,sans-serif" font-size="28" font-weight="600">${letter}</text></svg>`
+    );
+    return 'data:image/svg+xml,' + enc;
+  }
+
+  function wireTopAndHubNavOnce() {
+    if (hubNavWired) return;
+    hubNavWired = true;
+
+    AegisRemote.on(AegisRemote.KEY.DOWN, (code, e) => {
+      if (AegisPlayer.isActive()) return false;
+      const st = AegisNav.getState();
+      if (st.zone === ZONE_TOP_NAV) {
+        if (browseMode === 'hub') AegisNav.setZone(ZONE_CAT_HUB, 0);
+        else if (browseMode === 'grid') AegisNav.setZone(ZONE_CHANNEL_GRID, 0);
+        else AegisNav.setZone(ZONE_CHANNEL_SEARCH, 0);
+        e.preventDefault();
+        return true;
+      }
+      return false;
+    });
+
+    AegisRemote.on(AegisRemote.KEY.UP, (code, e) => {
+      if (AegisPlayer.isActive()) return false;
+      const st = AegisNav.getState();
+      if (st.zone === ZONE_CAT_HUB && st.index < GRID_COLS) {
+        AegisNav.setZone(ZONE_TOP_NAV, Math.min(st.index, 3));
+        e.preventDefault();
+        return true;
+      }
+      if (st.zone === ZONE_CHANNEL_GRID && st.index < GRID_COLS) {
+        closeCategoryGrid();
+        AegisNav.setZone(ZONE_CAT_HUB, 0);
+        e.preventDefault();
+        return true;
+      }
+      if (st.zone === ZONE_CHANNEL_SEARCH && st.index < GRID_COLS && (searchQuery || '').trim()) {
+        AegisNav.setZone(ZONE_TOP_NAV, 3);
+        e.preventDefault();
+        return true;
+      }
+      return false;
+    });
+  }
+
+  function registerTopNavZone() {
+    AegisNav.registerZone(ZONE_TOP_NAV, {
+      selector: '.top-bar-nav-item',
+      columns: 100,
+      loop: false,
+      onSelect: (el) => {
+        const v = el.dataset.view;
+        if (v) switchView(v);
+      },
+      onBack: () => {},
+    });
+  }
+
+  function registerCategoryHubZone() {
+    AegisNav.registerZone(ZONE_CAT_HUB, {
+      selector: '#category-hub-grid .category-tile',
+      columns: GRID_COLS,
+      loop: false,
+      onSelect: (el) => {
+        const cat = el.dataset.category;
+        if (cat) openCategoryGrid(cat);
+      },
+      onBack: () => {},
+    });
+  }
+
+  function registerChannelGridZone(zoneId, selectorRoot) {
+    const sel = selectorRoot + ' .channel-card';
+    AegisNav.registerZone(zoneId, {
+      selector: sel,
+      columns: GRID_COLS,
+      loop: false,
+      onSelect: (el) => selectCardPlay(el),
+      onBack: () => {
+        if (zoneId === ZONE_CHANNEL_GRID) {
+          closeCategoryGrid();
+        }
+      },
+    });
+  }
+
+  function openCategoryGrid(catName) {
+    gridCategory = catName;
+    browseMode = 'grid';
+    if (currentView === 'home') paintHomeContent();
+    else if (currentView === 'channels') renderChannelsView();
+  }
+
+  function closeCategoryGrid() {
+    browseMode = 'hub';
+    gridCategory = null;
+    if (currentView === 'home') paintHomeContent();
+    else if (currentView === 'channels') renderChannelsView();
   }
 
   function init() {
@@ -130,43 +224,17 @@ const AegisUI = (function() {
       clock: document.getElementById('top-bar-time'),
     };
 
+    if (dom.subToolbar) dom.subToolbar.hidden = true;
+
     updateClock();
     setInterval(updateClock, 30000);
 
     bindSearch();
     bindTopNav();
-    bindCategoryChipsClick();
-    wireHomeVerticalNavOnce();
     wireFavoriteToggleOnce();
+    wireTopAndHubNavOnce();
 
     console.log('[UI] Initialized');
-  }
-
-  function wireHomeVerticalNavOnce() {
-    if (homeUpDownWired) return;
-    homeUpDownWired = true;
-
-    AegisRemote.on(AegisRemote.KEY.UP, (code, e) => {
-      if (AegisPlayer.isActive()) return false;
-      if (currentView !== 'home' && currentView !== 'channels') return false;
-      if (AegisNav.getState().zone === 'category-chips') return false;
-      if (contentRowZones.length === 0) return false;
-      contentRowIndex = Math.max(0, contentRowIndex - 1);
-      AegisNav.setZone(contentRowZones[contentRowIndex], 0);
-      e.preventDefault();
-      return true;
-    });
-
-    AegisRemote.on(AegisRemote.KEY.DOWN, (code, e) => {
-      if (AegisPlayer.isActive()) return false;
-      if (currentView !== 'home' && currentView !== 'channels') return false;
-      if (AegisNav.getState().zone === 'category-chips') return false;
-      if (contentRowZones.length === 0) return false;
-      contentRowIndex = Math.min(contentRowZones.length - 1, contentRowIndex + 1);
-      AegisNav.setZone(contentRowZones[contentRowIndex], 0);
-      e.preventDefault();
-      return true;
-    });
   }
 
   function wireFavoriteToggleOnce() {
@@ -175,8 +243,8 @@ const AegisUI = (function() {
 
       const state = AegisNav.getState();
       const zone = state.zone || '';
-      const inRow = zone.startsWith('home-row-') || zone.startsWith('channels-row-') || zone === 'favorites-grid' || zone === 'home-row-search';
-      if (!inRow) return false;
+      const inGrid = zone === ZONE_CHANNEL_GRID || zone === ZONE_CHANNEL_SEARCH || zone === 'favorites-grid';
+      if (!inGrid) return false;
 
       const items = AegisNav.getItems();
       const el = items[state.index];
@@ -185,7 +253,7 @@ const AegisUI = (function() {
       const id = el.dataset.channelId;
       const nowFav = AegisCache.toggleFavorite(id);
       syncCardFavoriteUi(el, id);
-      showToast(nowFav ? '★ Adăugat la favorite' : '☆ Eliminat din favorite');
+      showToast(nowFav ? 'Adăugat la favorite' : 'Eliminat din favorite');
 
       if (currentView === 'favorites') renderFavorites();
       return true;
@@ -204,7 +272,7 @@ const AegisUI = (function() {
           badge = document.createElement('span');
           badge.className = 'channel-card-fav-badge';
           badge.setAttribute('aria-hidden', 'true');
-          badge.textContent = '★';
+          badge.title = 'Favorit';
           thumb.appendChild(badge);
         }
       } else if (badge) {
@@ -215,14 +283,16 @@ const AegisUI = (function() {
     if (!nameEl) return;
     const ch = allChannels.find(c => c.id === channelId);
     const base = ch ? ch.name : nameEl.textContent.replace(/^[★☆]\s*/, '').trim();
-    nameEl.textContent = (isFav ? '★ ' : '') + base;
+    nameEl.textContent = base;
   }
 
   function bindSearch() {
     if (!dom.searchInput) return;
     const debounced = debounce(() => {
       searchQuery = dom.searchInput.value || '';
-      if (currentView === 'home') renderHome();
+      browseMode = (searchQuery || '').trim() ? 'grid' : 'hub';
+      if (!(searchQuery || '').trim()) gridCategory = null;
+      if (currentView === 'home') paintHomeContent();
       else if (currentView === 'channels') renderChannelsView();
     }, 220);
     dom.searchInput.addEventListener('input', debounced);
@@ -240,62 +310,6 @@ const AegisUI = (function() {
     });
   }
 
-  function bindCategoryChipsClick() {
-    if (!dom.categoryStrip) return;
-    dom.categoryStrip.addEventListener('click', (e) => {
-      const chip = e.target.closest('.category-chip');
-      if (!chip) return;
-      applyCategoryFilter(chip.dataset.category === '' || chip.dataset.category === undefined ? null : chip.dataset.category);
-    });
-  }
-
-  function applyCategoryFilter(cat) {
-    categoryFilter = cat;
-    document.querySelectorAll('.category-chip').forEach(chip => {
-      const active = categoryFilter === null
-        ? chip.dataset.category === ''
-        : chip.dataset.category === categoryFilter;
-      chip.classList.toggle('is-active', active);
-    });
-    if (currentView === 'home') renderHome();
-    else if (currentView === 'channels') renderChannelsView();
-  }
-
-  function renderCategoryStrip() {
-    if (!dom.categoryStrip) return;
-    dom.categoryStrip.innerHTML = '';
-
-    const allChip = document.createElement('button');
-    allChip.type = 'button';
-    allChip.className = 'category-chip' + (categoryFilter === null ? ' is-active' : '');
-    allChip.dataset.category = '';
-    allChip.textContent = 'Toate';
-    dom.categoryStrip.appendChild(allChip);
-
-    const sorted = sortCategoryList(mergeCategoriesFromChannels(categories, allChannels));
-    for (const cat of sorted) {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'category-chip' + (categoryFilter === cat.name ? ' is-active' : '');
-      btn.dataset.category = cat.name;
-      const icon = cat.icon || categoryIcon(cat.name);
-      btn.textContent = `${icon} ${cat.name} (${cat.count})`;
-      dom.categoryStrip.appendChild(btn);
-    }
-  }
-
-  function registerCategoryZone() {
-    AegisNav.registerZone('category-chips', {
-      selector: '.category-chip',
-      columns: 100,
-      loop: false,
-      onSelect: (el) => {
-        applyCategoryFilter(el.dataset.category === '' ? null : el.dataset.category);
-      },
-      onBack: () => {},
-    });
-  }
-
   function setShellForView(view) {
     document.querySelectorAll('.top-bar-nav-item').forEach(el => {
       el.classList.toggle('active', el.dataset.view === view);
@@ -306,8 +320,8 @@ const AegisUI = (function() {
     });
 
     if (dom.subToolbar && dom.mainContent) {
+      dom.subToolbar.hidden = true;
       const browse = view === 'home' || view === 'channels';
-      dom.subToolbar.hidden = !browse;
       dom.mainContent.classList.toggle('main-content--browse', browse);
     }
   }
@@ -316,21 +330,19 @@ const AegisUI = (function() {
     currentView = view;
     setShellForView(view);
 
-    if (view === 'home') renderHome();
+    if (view === 'home') paintHomeContent();
     else if (view === 'channels') renderChannelsView();
     else if (view === 'favorites') renderFavorites();
     else AegisNav.clearZones();
   }
 
-  /**
-   * Date din app — normalizează și desenează prima dată
-   */
   function renderHome(channels, cats, featured) {
     if (channels !== undefined) {
       allChannels = normalizeChannels(channels);
       categories = sortCategoryList(mergeCategoriesFromChannels(cats || [], allChannels));
       featuredChannels = featured || [];
-      renderCategoryStrip();
+      browseMode = 'hub';
+      gridCategory = null;
     }
     currentView = 'home';
     setShellForView('home');
@@ -343,68 +355,65 @@ const AegisUI = (function() {
 
     AegisNav.clearZones();
     container.innerHTML = '';
-    contentRowZones = [];
+    registerTopNavZone();
 
     const base = getWorkingChannels();
     const q = (searchQuery || '').trim();
 
     if (q) {
-      const row = createChannelRow('Rezultate căutare', base, 'search');
-      container.appendChild(row);
-      registerContentRows(['home-row-search'], 'scroll-search');
+      container.appendChild(createSearchHeader('Rezultate căutare'));
+      container.appendChild(createChannelGridWrap('channel-grid-search-wrap', base, ZONE_CHANNEL_SEARCH));
+      registerChannelGridZone(ZONE_CHANNEL_SEARCH, '#channel-grid-search-wrap');
+      AegisNav.setZone(ZONE_CHANNEL_SEARCH, 0);
       runEnterAnimations(container);
-      registerCategoryZone();
       return;
     }
 
-    const heroSource = featuredChannels[0] || allChannels[0];
-    if (heroSource && categoryFilter === null) {
-      container.appendChild(createHero(heroSource));
-    }
-
-    if (categoryFilter === null && featuredChannels.length > 0) {
-      const row = createChannelRow('Recomandate', featuredChannels.filter(ch => base.some(b => b.id === ch.id)), 'featured');
-      if (row.querySelectorAll('.channel-card').length > 0) container.appendChild(row);
-    }
-
-    if (categoryFilter === null) {
-      const recent = AegisCache.getRecent();
-      if (recent.length > 0) {
-        const recentCh = recent
-          .map(r => allChannels.find(ch => ch.id === r.id))
-          .filter(Boolean)
-          .filter(ch => base.some(b => b.id === ch.id))
-          .slice(0, 12);
-        if (recentCh.length > 0) {
-          container.appendChild(createChannelRow('Vizionate recent', recentCh, 'recent'));
-        }
+    if (browseMode === 'grid' && gridCategory) {
+      const catChannels = base.filter(ch => (ch.category || 'General') === gridCategory);
+      const header = document.createElement('div');
+      header.className = 'browse-back-header';
+      header.innerHTML = `
+        <button type="button" class="browse-back-hint" id="btn-back-category" tabindex="-1">Înapoi la categorii</button>
+        <h2 class="browse-grid-title">${escapeHtml(gridCategory)} <span class="browse-grid-count">${catChannels.length} canale</span></h2>
+      `;
+      const btn = header.querySelector('#btn-back-category');
+      if (btn) {
+        btn.addEventListener('click', () => closeCategoryGrid());
       }
-
-      const favIds = AegisCache.getFavorites();
-      if (favIds.length > 0) {
-        const favCh = favIds
-          .map(id => allChannels.find(ch => ch.id === id))
-          .filter(Boolean)
-          .filter(ch => base.some(b => b.id === ch.id));
-        if (favCh.length > 0) {
-          container.appendChild(createChannelRow('Favorite', favCh, 'favorites-home'));
-        }
-      }
+      container.appendChild(header);
+      container.appendChild(createChannelGridWrap('channel-grid-browse-wrap', catChannels, ZONE_CHANNEL_GRID));
+      registerChannelGridZone(ZONE_CHANNEL_GRID, '#channel-grid-browse-wrap');
+      AegisNav.setZone(ZONE_CHANNEL_GRID, 0);
+      runEnterAnimations(container);
+      return;
     }
 
     const orderedCats = sortCategoryList(mergeCategoriesFromChannels(categories, allChannels));
+
+    const hubSection = document.createElement('section');
+    hubSection.className = 'category-hub-section';
+    hubSection.innerHTML = '<h2 class="category-hub-heading">Categorii</h2><div id="category-hub-grid" class="category-hub-grid" role="list"></div>';
+    const hubGrid = hubSection.querySelector('#category-hub-grid');
     for (const cat of orderedCats) {
-      if (categoryFilter && cat.name !== categoryFilter) continue;
       const catChannels = base.filter(ch => (ch.category || 'General') === cat.name);
       if (catChannels.length === 0) continue;
-      const slug = rowSlug(cat.name);
-      const icon = cat.icon || categoryIcon(cat.name);
-      container.appendChild(createChannelRow(`${icon} ${cat.name}`, catChannels, `cat-${slug}`));
+      hubGrid.appendChild(createCategoryTile(cat.name, catChannels.length));
+    }
+    container.appendChild(hubSection);
+
+    const heroSource = featuredChannels[0] || allChannels[0];
+    if (heroSource) {
+      container.appendChild(createHero(heroSource));
     }
 
-    registerHomeRowZones(container);
+    registerCategoryHubZone();
+    if (orderedCats.length === 0 || hubGrid.children.length === 0) {
+      AegisNav.setZone(ZONE_TOP_NAV, 0);
+    } else {
+      AegisNav.setZone(ZONE_CAT_HUB, 0);
+    }
     runEnterAnimations(container);
-    registerCategoryZone();
   }
 
   function renderChannelsView() {
@@ -413,104 +422,88 @@ const AegisUI = (function() {
     setShellForView('channels');
     AegisNav.clearZones();
     dom.channelsView.innerHTML = '';
-    contentRowZones = [];
+    registerTopNavZone();
 
     const base = getWorkingChannels();
     const q = (searchQuery || '').trim();
 
     if (q) {
-      dom.channelsView.appendChild(createChannelRow('Rezultate căutare', base, 'ch-search'));
-      registerChannelsRows(['channels-row-ch-search'], 'scroll-ch-search');
+      dom.channelsView.appendChild(createSearchHeader('Rezultate căutare'));
+      dom.channelsView.appendChild(createChannelGridWrap('channel-grid-search-wrap', base, ZONE_CHANNEL_SEARCH));
+      registerChannelGridZone(ZONE_CHANNEL_SEARCH, '#channel-grid-search-wrap');
+      AegisNav.setZone(ZONE_CHANNEL_SEARCH, 0);
       runEnterAnimations(dom.channelsView);
-      registerCategoryZone();
       return;
     }
 
-    const orderedCats = sortCategoryList(mergeCategoriesFromChannels(categories, allChannels));
-    for (const cat of orderedCats) {
-      if (categoryFilter && cat.name !== categoryFilter) continue;
-      const catChannels = base.filter(ch => (ch.category || 'General') === cat.name);
-      if (catChannels.length === 0) continue;
-      const slug = rowSlug(cat.name);
-      const icon = cat.icon || categoryIcon(cat.name);
-      dom.channelsView.appendChild(createChannelRow(`${icon} ${cat.name}`, catChannels, `ch-${slug}`));
+    if (browseMode === 'grid' && gridCategory) {
+      const catChannels = base.filter(ch => (ch.category || 'General') === gridCategory);
+      const header = document.createElement('div');
+      header.className = 'browse-back-header';
+      header.innerHTML = `
+        <button type="button" class="browse-back-hint" tabindex="-1">Înapoi la categorii</button>
+        <h2 class="browse-grid-title">${escapeHtml(gridCategory)} <span class="browse-grid-count">${catChannels.length} canale</span></h2>
+      `;
+      header.querySelector('button').addEventListener('click', () => closeCategoryGrid());
+      dom.channelsView.appendChild(header);
+      dom.channelsView.appendChild(createChannelGridWrap('channel-grid-browse-wrap', catChannels, ZONE_CHANNEL_GRID));
+      registerChannelGridZone(ZONE_CHANNEL_GRID, '#channel-grid-browse-wrap');
+      AegisNav.setZone(ZONE_CHANNEL_GRID, 0);
+      runEnterAnimations(dom.channelsView);
+      return;
     }
 
-    registerChannelsBrowseZones();
+    const hubSection = document.createElement('section');
+    hubSection.className = 'category-hub-section';
+    hubSection.innerHTML = '<h2 class="category-hub-heading">Categorii</h2><div id="category-hub-grid" class="category-hub-grid" role="list"></div>';
+    const hubGrid = hubSection.querySelector('#category-hub-grid');
+    const orderedCats = sortCategoryList(mergeCategoriesFromChannels(categories, allChannels));
+    for (const cat of orderedCats) {
+      const catChannels = base.filter(ch => (ch.category || 'General') === cat.name);
+      if (catChannels.length === 0) continue;
+      hubGrid.appendChild(createCategoryTile(cat.name, catChannels.length));
+    }
+    dom.channelsView.appendChild(hubSection);
+
+    registerCategoryHubZone();
+    if (orderedCats.length === 0 || hubGrid.children.length === 0) {
+      AegisNav.setZone(ZONE_TOP_NAV, 1);
+    } else {
+      AegisNav.setZone(ZONE_CAT_HUB, 0);
+    }
     runEnterAnimations(dom.channelsView);
-    registerCategoryZone();
   }
 
-  function registerContentRows(zoneNames, scrollIdPrefix) {
-    contentRowZones = zoneNames;
-    contentRowIndex = 0;
-    zoneNames.forEach((zoneName, i) => {
-      const id = zoneName.replace(/^home-row-|^channels-row-/, '');
-      const scrollId = scrollIdPrefix || `scroll-${id}`;
-      AegisNav.registerZone(zoneName, {
-        selector: `#${scrollId} .channel-card`,
-        columns: 100,
-        loop: false,
-        onSelect: (el) => selectCardPlay(el),
-        onBack: () => {},
-      });
-    });
-    if (zoneNames.length > 0) AegisNav.setZone(zoneNames[0], 0);
+  function createSearchHeader(title) {
+    const h = document.createElement('div');
+    h.className = 'browse-back-header';
+    h.innerHTML = `<h2 class="browse-grid-title">${escapeHtml(title)}</h2>`;
+    return h;
   }
 
-  function registerHomeRowZones(container) {
-    const rows = container.querySelectorAll('.channel-row');
-    const zoneNames = [];
-    rows.forEach((row) => {
-      const id = row.id.replace('row-', '');
-      const zoneName = `home-row-${id}`;
-      zoneNames.push(zoneName);
-      AegisNav.registerZone(zoneName, {
-        selector: `#scroll-${id} .channel-card`,
-        columns: 100,
-        loop: false,
-        onSelect: (el) => selectCardPlay(el),
-        onBack: () => {},
-      });
-    });
-    contentRowZones = zoneNames;
-    contentRowIndex = 0;
-    if (zoneNames.length > 0) AegisNav.setZone(zoneNames[0], 0);
+  function createCategoryTile(name, count) {
+    const el = document.createElement('div');
+    el.className = 'category-tile';
+    el.dataset.category = name;
+    el.setAttribute('role', 'listitem');
+    el.tabIndex = -1;
+    const svg = typeof CategoryIcons !== 'undefined' ? CategoryIcons.svgForCategory(name) : '';
+    el.innerHTML = `
+      <div class="category-tile-icon">${svg}</div>
+      <div class="category-tile-name">${escapeHtml(name)}</div>
+      <div class="category-tile-meta">${count} canale</div>
+    `;
+    return el;
   }
 
-  function registerChannelsBrowseZones() {
-    const rows = dom.channelsView.querySelectorAll('.channel-row');
-    const zoneNames = [];
-    rows.forEach((row) => {
-      const id = row.id.replace('row-', '');
-      const zoneName = `channels-row-${id}`;
-      zoneNames.push(zoneName);
-      AegisNav.registerZone(zoneName, {
-        selector: `#scroll-${id} .channel-card`,
-        columns: 100,
-        loop: false,
-        onSelect: (el) => selectCardPlay(el),
-        onBack: () => {},
-      });
-    });
-    contentRowZones = zoneNames;
-    contentRowIndex = 0;
-    if (zoneNames.length > 0) AegisNav.setZone(zoneNames[0], 0);
-  }
-
-  function registerChannelsRows(zoneNames, scrollId) {
-    contentRowZones = zoneNames;
-    contentRowIndex = 0;
-    zoneNames.forEach((zoneName) => {
-      AegisNav.registerZone(zoneName, {
-        selector: `#${scrollId} .channel-card`,
-        columns: 100,
-        loop: false,
-        onSelect: (el) => selectCardPlay(el),
-        onBack: () => {},
-      });
-    });
-    if (zoneNames.length > 0) AegisNav.setZone(zoneNames[0], 0);
+  function createChannelGridWrap(wrapId, channels, _hintId) {
+    const wrap = document.createElement('div');
+    wrap.id = wrapId.replace(/^#/, '');
+    wrap.className = 'channel-grid channel-grid-page';
+    for (const ch of channels) {
+      wrap.appendChild(createChannelCard(ch));
+    }
+    return wrap;
   }
 
   function selectCardPlay(el) {
@@ -523,7 +516,7 @@ const AegisUI = (function() {
     if (!dom.favoritesGrid || !dom.favoritesEmpty) return;
     AegisNav.clearZones();
     dom.favoritesGrid.innerHTML = '';
-    contentRowZones = [];
+    registerTopNavZone();
 
     const favIds = AegisCache.getFavorites();
     const favChannels = favIds
@@ -532,6 +525,7 @@ const AegisUI = (function() {
 
     if (favChannels.length === 0) {
       dom.favoritesEmpty.hidden = false;
+      AegisNav.setZone(ZONE_TOP_NAV, 2);
       return;
     }
 
@@ -542,13 +536,11 @@ const AegisUI = (function() {
 
     AegisNav.registerZone('favorites-grid', {
       selector: '#favorites-grid .channel-card',
-      columns: 5,
+      columns: GRID_COLS,
       loop: false,
       onSelect: (el) => selectCardPlay(el),
       onBack: () => {},
     });
-    contentRowZones = ['favorites-grid'];
-    contentRowIndex = 0;
     AegisNav.setZone('favorites-grid', 0);
   }
 
@@ -556,9 +548,9 @@ const AegisUI = (function() {
     requestAnimationFrame(() => {
       const hero = container.querySelector('.hero-section');
       if (hero) hero.classList.add('visible');
-      const cards = container.querySelectorAll('.channel-card');
+      const cards = container.querySelectorAll('.channel-card, .category-tile');
       cards.forEach((card, i) => {
-        setTimeout(() => card.classList.add('loaded'), i * 25);
+        setTimeout(() => card.classList.add('loaded'), i * 20);
       });
     });
   }
@@ -595,31 +587,6 @@ const AegisUI = (function() {
     return section;
   }
 
-  function createChannelRow(title, channels, id) {
-    const row = document.createElement('div');
-    row.className = 'channel-row';
-    row.id = `row-${id}`;
-
-    const header = document.createElement('div');
-    header.className = 'channel-row-header';
-    header.innerHTML = `
-      <span class="channel-row-title">${escapeHtml(title)}</span>
-      <span class="channel-row-count">${channels.length} canale</span>
-    `;
-    row.appendChild(header);
-
-    const scroll = document.createElement('div');
-    scroll.className = 'channel-row-scroll';
-    scroll.id = `scroll-${id}`;
-
-    for (const ch of channels) {
-      scroll.appendChild(createChannelCard(ch));
-    }
-
-    row.appendChild(scroll);
-    return row;
-  }
-
   function createChannelCard(channel) {
     const card = document.createElement('div');
     card.className = 'channel-card';
@@ -630,17 +597,18 @@ const AegisUI = (function() {
     if (isFav) card.classList.add('is-favorite');
 
     const epgText = (channel.epg && channel.epg.now) ? channel.epg.now.title : '';
-    const logoSrc = channel.logo || '';
+    const logoSrc = resolveLogoUrl(channel.logo);
+    const placeholder = logoPlaceholderDataUri(channel.name);
 
     card.innerHTML = `
       <div class="channel-card-thumb">
-        <img class="channel-card-logo" src="${escapeHtml(logoSrc)}" alt="${escapeHtml(channel.name)}" loading="lazy" onerror="this.style.display='none'">
-        <span class="channel-card-quality">${channel.quality || 'HD'}</span>
+        <img class="channel-card-logo" src="${escapeHtml(logoSrc || placeholder)}" alt="${escapeHtml(channel.name)}" loading="lazy">
+        <span class="channel-card-quality">${escapeHtml(channel.quality || 'HD')}</span>
         <span class="channel-card-live"><span class="channel-card-live-dot"></span>LIVE</span>
-        ${isFav ? '<span class="channel-card-fav-badge" aria-hidden="true">★</span>' : ''}
+        ${isFav ? '<span class="channel-card-fav-badge" aria-hidden="true" title="Favorit"></span>' : ''}
       </div>
       <div class="channel-card-info">
-        <div class="channel-card-name">${isFav ? '★ ' : ''}${escapeHtml(channel.name)}</div>
+        <div class="channel-card-name">${escapeHtml(channel.name)}</div>
         <div class="channel-card-category">${escapeHtml(channel.category)}</div>
         ${epgText ? `<div class="channel-card-epg">${escapeHtml(epgText)}</div>` : ''}
         <div class="channel-card-score">
@@ -651,6 +619,14 @@ const AegisUI = (function() {
         </div>
       </div>
     `;
+
+    const img = card.querySelector('.channel-card-logo');
+    if (img) {
+      img.addEventListener('error', function onLogoErr() {
+        img.removeEventListener('error', onLogoErr);
+        img.src = placeholder;
+      }, { once: true });
+    }
 
     return card;
   }
@@ -693,6 +669,10 @@ const AegisUI = (function() {
     return allChannels;
   }
 
+  function handleBackFromPlayer() {
+    closeCategoryGrid();
+  }
+
   return {
     init,
     renderHome,
@@ -700,5 +680,7 @@ const AegisUI = (function() {
     showToast,
     getChannels,
     escapeHtml,
+    closeCategoryGrid,
+    handleBackFromPlayer,
   };
 })();

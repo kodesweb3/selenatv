@@ -123,7 +123,7 @@ const AegisApp = (function() {
     isBooted = true;
 
     // Register back button handler for player
-    AegisRemote.on([AegisRemote.KEY.BACK, AegisRemote.KEY.BACK_ALT], () => {
+    AegisRemote.on([AegisRemote.KEY.BACK, AegisRemote.KEY.BACK_ALT, AegisRemote.KEY.BACK_WEBOS2], () => {
       if (AegisPlayer.isActive()) {
         AegisPlayer.stop();
         return true;

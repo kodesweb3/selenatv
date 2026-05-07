@@ -3,7 +3,12 @@
  */
 
 const log = require('../utils/logger');
-const { generateChannelId, categorizeChannel, KNOWN_CHANNELS } = require('../utils/helpers');
+const {
+  generateChannelId,
+  categorizeChannel,
+  KNOWN_CHANNELS,
+  normalizeChannelNameForMatch,
+} = require('../utils/helpers');
 
 /**
  * Process raw validated channels into ranked, deduplicated channel list
@@ -36,7 +41,7 @@ function rankChannels(validatedChannels) {
     const channel = {
       id,
       name: knownMeta?.name || cleanChannelName(best.name),
-      category: categorizeChannel(best.name),
+      category: categorizeChannel(knownMeta?.name || best.name),
       logo: knownMeta?.logo ? `/api/logo/${knownMeta.logo}` : (best.tvgLogo || ''),
       stream: best.streamUrl,
       quality: best.quality || 'SD',
@@ -63,19 +68,36 @@ function rankChannels(validatedChannels) {
 }
 
 /**
+ * Match M3U name to KNOWN_CHANNELS using normalized titles (PROTV / Pro TV / HD / 4K).
+ */
+function findKnownChannelEntry(rawName) {
+  if (!rawName) return null;
+  const norm = normalizeChannelNameForMatch(rawName);
+  if (!norm) return null;
+
+  const candidates = Object.entries(KNOWN_CHANNELS)
+    .map(([id, meta]) => ({
+      id,
+      meta,
+      kn: normalizeChannelNameForMatch(meta.name),
+    }))
+    .filter((x) => x.kn.length >= 3)
+    .sort((a, b) => b.kn.length - a.kn.length);
+
+  for (const { id, meta, kn } of candidates) {
+    if (norm === kn) return { id, meta };
+    if (norm.startsWith(kn) || kn.startsWith(norm)) return { id, meta };
+  }
+  return null;
+}
+
+/**
  * Resolve a channel ID from various metadata
  */
 function resolveChannelId(channel) {
-  const name = (channel.tvgName || channel.name || '').toLowerCase().trim();
-
-  // Try matching against known channels
-  for (const [id, meta] of Object.entries(KNOWN_CHANNELS)) {
-    const knownName = meta.name.toLowerCase();
-    if (name === knownName || name.includes(knownName) || knownName.includes(name)) {
-      return id;
-    }
-  }
-
+  const label = channel.tvgName || channel.name || '';
+  const hit = findKnownChannelEntry(label);
+  if (hit) return hit.id;
   return generateChannelId(channel.name || 'unknown');
 }
 
@@ -83,16 +105,8 @@ function resolveChannelId(channel) {
  * Find known channel metadata by name
  */
 function findKnownChannel(name) {
-  if (!name) return null;
-  const n = name.toLowerCase().trim();
-
-  for (const meta of Object.values(KNOWN_CHANNELS)) {
-    const kn = meta.name.toLowerCase();
-    if (n === kn || n.includes(kn) || kn.includes(n)) {
-      return meta;
-    }
-  }
-  return null;
+  const hit = findKnownChannelEntry(name);
+  return hit ? hit.meta : null;
 }
 
 /**
@@ -111,6 +125,7 @@ const CATEGORY_ORDER = [
   'Știri',
   'Info',
   'Sport',
+  '4K',
   'Filme',
   'Documentare',
   'Istorie',
@@ -156,6 +171,7 @@ function getCategoryIcon(category) {
     'Info': 'ℹ️',
     'General': '📺',
     'Sport': '⚽',
+    '4K': 'UHD',
     'Muzică': '🎵',
     'Copii': '🧸',
     'Filme': '🎬',

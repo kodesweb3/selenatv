@@ -79,6 +79,12 @@ Implicit, aplicația folosește **backend cloud** (Railway): `https://selenatv-p
 - schimbă default-ul sau golește datele app din TV și setează în cod `http://IP_PC:3000` înainte de `ares-package`, **sau**
 - după prima instalare, dacă ai ecran Setări cu URL, îl poți edita acolo (dacă e implementat).
 
+### Flux UI (telecomandă)
+
+- **Acasă / Canale:** apare mai întâi **hub-ul de categorii** (iconuri SVG); după ce alegi o categorie, vezi o **grilă** de canale (5 coloane).
+- **Înapoi:** din player oprește redarea și revii în app; din grila unei categorii te întorci la categorii. Coduri tastă webOS folosite: **461** și **10009** (plus Backspace în browser).
+- **Cache pe TV:** listele de canale/categorii din storage local au TTL **7 zile** (vezi `js/cache.js`); la pornire se folosesc datele cache, apoi refresh din rețea când backend-ul răspunde.
+
 ### 2. Package the App
 
 Ai nevoie de **`icon.png`** în `webos-app/` (inclus în repo). Dacă `ares-package` dă eroare de tip „path does not exist” cu un cod hex, în `appinfo.json` scoate temporan câmpurile opționale `bgColor` / `splashBackground` / `iconColor` (culorile rămân în CSS/HTML).
@@ -150,7 +156,7 @@ pm2 startup
 **URL public (exemplu):** `https://selenatv-production.up.railway.app`
 
 1. În Railway: proiect nou sau serviciu Node, **Root Directory** = `aegis-tv/backend` (dacă repo-ul e rădăcina SelenaTV).
-2. Variabile recomandate: vezi `backend/.env.example`. Opțional `SELENA_ADMIN_KEY` pentru `POST /api/admin/recategorize`.
+2. Variabile recomandate: vezi `backend/.env.example`. Opțional `SELENA_ADMIN_KEY` pentru `POST /api/admin/recategorize`. Poți adăuga **`EXTRA_M3U_URLS`** — liste M3U extra (URL-uri separate prin virgulă/spațiu), îmbinate cu sursele implicite la fiecare scan.
 3. **Atenție:** fișierele din `storage/` nu sunt persistente între redeploy-uri fără **Volume** pe Railway — după deploy rece rulează scan-ul inițial sau folosește un volume montat pe `storage`.
 
 În aplicația webOS setezi backend-ul la URL-ul HTTPS Railway (fără slash final), ex. în **Setări** prin cache sau editând în dev `js/cache.js` default `backendUrl`.

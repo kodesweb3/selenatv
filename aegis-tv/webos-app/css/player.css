@@ -296,7 +296,16 @@
 }
 
 .player-error-icon {
-  font-size: 48px;
+  width: 56px;
+  height: 56px;
+  border: 2px solid var(--accent);
+  border-radius: 50%;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   margin-bottom: var(--spacing-md);
 }
 

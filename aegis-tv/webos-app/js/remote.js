@@ -15,6 +15,7 @@ const AegisRemote = (function() {
     ENTER: 13,
     BACK: 461,       // webOS Back button
     BACK_ALT: 8,     // Backspace (browser fallback)
+    BACK_WEBOS2: 10009, // unele firmware-uri webOS
     EXIT: 27,         // ESC / Exit
     RED: 403,
     GREEN: 404,
@@ -97,7 +98,7 @@ const AegisRemote = (function() {
       const typingInSearch = ae && ae.classList && ae.classList.contains('top-bar-search');
 
       if (typingInSearch) {
-        if ([KEY.BACK, KEY.BACK_ALT].includes(keyCode)) {
+        if ([KEY.BACK, KEY.BACK_ALT, KEY.BACK_WEBOS2].includes(keyCode)) {
           ae.blur();
           e.preventDefault();
           e.stopPropagation();
@@ -121,7 +122,7 @@ const AegisRemote = (function() {
       }
 
       // Prevent default browser behavior for navigation keys
-      if ([KEY.UP, KEY.DOWN, KEY.LEFT, KEY.RIGHT, KEY.ENTER, KEY.BACK, KEY.BACK_ALT].includes(keyCode)) {
+      if ([KEY.UP, KEY.DOWN, KEY.LEFT, KEY.RIGHT, KEY.ENTER, KEY.BACK, KEY.BACK_ALT, KEY.BACK_WEBOS2].includes(keyCode)) {
         e.preventDefault();
       }
     }, true);
