@@ -7,10 +7,7 @@
   "title": "SelenaTV",
   "icon": "icon.png",
   "largeIcon": "icon.png",
-  "bgColor": "#050505",
   "resolution": "1920x1080",
-  "iconColor": "#C6A972",
-  "splashBackground": "#050505",
   "transparent": false,
   "handlesRelaunch": true,
   "disableBackHistoryAPI": false

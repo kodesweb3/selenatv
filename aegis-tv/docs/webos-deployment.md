@@ -41,25 +41,29 @@ ares-setup-device
 ```
 
 Choose **add** and enter:
-- **Name**: `aegis-tv` (or any name)
-- **IP**: Your TV's IP address
+- **Name**: orice alias (ex. `kodes`)
+- **IP**: IP-ul TV (ex. `192.168.1.7`)
 - **Port**: `9922`
-- **Username**: `prisoner`
+- **SSH user**: **`prisoner`** (obligatoriu — nu este passphrase-ul de pe ecran, nici altceva)
+
+Dacă apare **`Not supported auth type`**, de obicei ai pus passphrase-ul sau alt user la „ssh user”; șterge dispozitivul și adaugă din nou cu **`prisoner`**.
 
 ### 3. Get the SSH Key
 
 After enabling Key Server on the TV:
 
 ```bash
-ares-novacom --device aegis-tv --getkey
+ares-novacom --device kodes --getkey
 ```
 
-Enter the passphrase shown on the TV's Developer Mode app.
+(înlocuiește `kodes` cu numele dat la **ares-setup-device**)
+
+Enter the passphrase **afișată în aplicația Developer Mode pe TV** (nu este username-ul SSH).
 
 ### 4. Verify Connection
 
 ```bash
-ares-device-info --device aegis-tv
+ares-device -i --device kodes
 ```
 
 You should see your TV's model and webOS version.
@@ -70,17 +74,14 @@ You should see your TV's model and webOS version.
 
 ### 1. Configure Backend URL
 
-Edit `webos-app/js/api.js` and set the backend IP:
+Implicit, aplicația folosește **backend cloud** (Railway): `https://selenatv-production.up.railway.app` — vezi `js/cache.js` (`backendUrl` default) și `js/app.js` (fallback). Pentru **PC local**, apoi build IPK:
 
-```javascript
-let BASE_URL = 'http://YOUR_PC_IP:3000';
-```
-
-Replace `YOUR_PC_IP` with your computer's local network IP (e.g., `192.168.1.100`).
-
-> The TV and your PC must be on the **same WiFi network**.
+- schimbă default-ul sau golește datele app din TV și setează în cod `http://IP_PC:3000` înainte de `ares-package`, **sau**
+- după prima instalare, dacă ai ecran Setări cu URL, îl poți edita acolo (dacă e implementat).
 
 ### 2. Package the App
+
+Ai nevoie de **`icon.png`** în `webos-app/` (inclus în repo). Dacă `ares-package` dă eroare de tip „path does not exist” cu un cod hex, în `appinfo.json` scoate temporan câmpurile opționale `bgColor` / `splashBackground` / `iconColor` (culorile rămân în CSS/HTML).
 
 ```bash
 cd aegis-tv/webos-app
@@ -92,19 +93,21 @@ This creates `com.selena.tv_1.0.0_all.ipk` (vezi `appinfo.json`)
 ### 3. Install on TV
 
 ```bash
-ares-install --device aegis-tv com.selena.tv_1.0.0_all.ipk
+ares-install --device kodes com.selena.tv_1.0.0_all.ipk
 ```
+
+(înlocuiește `kodes` cu numele dispozitivului tău din `ares-setup-device`)
 
 ### 4. Launch on TV
 
 ```bash
-ares-launch --device aegis-tv com.selena.tv
+ares-launch --device kodes com.selena.tv
 ```
 
 ### 5. View Logs (Debug)
 
 ```bash
-ares-inspect --device aegis-tv --app com.selena.tv --open
+ares-inspect --device kodes --app com.selena.tv --open
 ```
 
 This opens Chrome DevTools connected to the TV app.
@@ -169,10 +172,10 @@ cd webos-app
 ares-package .
 
 # Re-install (overwrites previous)
-ares-install --device aegis-tv com.selena.tv_1.0.0_all.ipk
+ares-install --device kodes com.selena.tv_1.0.0_all.ipk
 
 # Re-launch
-ares-launch --device aegis-tv com.selena.tv
+ares-launch --device kodes com.selena.tv
 ```
 
 ---

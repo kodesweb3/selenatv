@@ -6,8 +6,8 @@
 const AegisAPI = (function() {
   'use strict';
 
-  // Backend URL — configure for your network
-  let BASE_URL = 'http://localhost:3000';
+  // Default backend — suprascris la boot din setări (cache) sau dev
+  let BASE_URL = 'https://selenatv-production.up.railway.app';
 
   function setBaseUrl(url) {
     BASE_URL = url.replace(/\/$/, '');

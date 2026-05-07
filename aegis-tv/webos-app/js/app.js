@@ -37,7 +37,7 @@ const AegisApp = (function() {
 
     // Load settings
     const settings = AegisCache.getSettings();
-    AegisAPI.setBaseUrl(settings.backendUrl || 'http://localhost:3000');
+    AegisAPI.setBaseUrl(settings.backendUrl || 'https://selenatv-production.up.railway.app');
 
     // Initialize remote
     updateSplash('CONFIGURARE TELECOMANDĂ', 20);

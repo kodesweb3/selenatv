@@ -146,7 +146,7 @@ const AegisCache = (function() {
 
   function getSettings() {
     return get('settings') || {
-      backendUrl: 'http://localhost:3000',
+      backendUrl: 'https://selenatv-production.up.railway.app',
       pinEnabled: false,
       pin: '',
       autoplay: true,

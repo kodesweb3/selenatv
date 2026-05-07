@@ -23,3 +23,6 @@ aegis-tv/backend/storage/epg/*.json
 !aegis-tv/backend/storage/cache/.gitkeep
 !aegis-tv/backend/storage/logs/.gitkeep
 !aegis-tv/backend/storage/epg/.gitkeep
+
+# webOS package build (local)
+*.ipk
