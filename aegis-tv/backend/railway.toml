@@ -1,0 +1,7 @@
+# Railway: set Root Directory to this folder (aegis-tv/backend).
+# Uses NIXPACKS + npm start from package.json by default.
+
+[deploy]
+startCommand = "node server.js"
+healthcheckPath = "/health"
+restartPolicyType = "ON_FAILURE"

@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1920, height=1080, initial-scale=1.0, user-scalable=no">
+  <meta name="description" content="SelenaTV — Private Premium IPTV Operating System">
+  <title>SelenaTV</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/player.css">
+  <link rel="stylesheet" href="css/animations.css">
+
+  <!-- HLS.js — Lightweight stream player -->
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.7/dist/hls.min.js"></script>
+
+  <style>
+    /* Critical inline styles for instant splash */
+    body { background: #050505; }
+  </style>
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════════
+       SPLASH SCREEN
+       ═══════════════════════════════════════════ -->
+  <div id="splash-screen">
+    <div class="splash-logo">
+      <svg viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Shield shape -->
+        <path d="M60 8L14 30V62C14 88 34 110 60 118C86 110 106 88 106 62V30L60 8Z"
+              fill="none" stroke="#C6A972" stroke-width="2" opacity="0.4"/>
+        <path d="M60 16L22 34V62C22 84 38 104 60 110C82 104 98 84 98 62V34L60 16Z"
+              fill="rgba(198,169,114,0.05)" stroke="#C6A972" stroke-width="1" opacity="0.2"/>
+        <!-- S letter -->
+        <path d="M72 42C72 42 68 34 58 34C48 34 44 40 44 46C44 52 48 56 58 58C68 60 76 64 76 74C76 80 70 86 58 86C46 86 42 78 42 78" stroke="#C6A972" stroke-width="3.5"
+              stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        <!-- Horizontal lines -->
+        <line x1="30" y1="52" x2="45" y2="52" stroke="#C6A972" stroke-width="1" opacity="0.3"/>
+        <line x1="75" y1="52" x2="90" y2="52" stroke="#C6A972" stroke-width="1" opacity="0.3"/>
+      </svg>
+    </div>
+    <div class="splash-title">SELENA TV</div>
+    <div class="splash-subtitle">Terminal Media Privat</div>
+    <div class="splash-loader">
+      <div class="splash-loader-bar" id="splash-loader-bar"></div>
+    </div>
+    <div class="splash-status" id="splash-status">INITIALIZING</div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       MAIN APPLICATION
+       ═══════════════════════════════════════════ -->
+  <div id="app">
+
+    <!-- Top Bar -->
+    <header class="top-bar">
+      <div class="top-bar-logo">
+        <svg viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M60 8L14 30V62C14 88 34 110 60 118C86 110 106 88 106 62V30L60 8Z"
+                fill="none" stroke="#C6A972" stroke-width="2" opacity="0.5"/>
+          <path d="M72 42C72 42 68 34 58 34C48 34 44 40 44 46C44 52 48 56 58 58C68 60 76 64 76 74C76 80 70 86 58 86C46 86 42 78 42 78" stroke="#C6A972" stroke-width="3"
+                stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        </svg>
+        <span class="top-bar-logo-text">SelenaTV</span>
+      </div>
+
+      <nav class="top-bar-nav" aria-label="Navigare principală">
+        <div class="top-bar-nav-item active" data-view="home" tabindex="0" role="button">Acasă</div>
+        <div class="top-bar-nav-item" data-view="channels" tabindex="0" role="button">Canale</div>
+        <div class="top-bar-nav-item" data-view="favorites" tabindex="0" role="button">Favorite</div>
+        <div class="top-bar-nav-item" data-view="settings" tabindex="0" role="button">Setări</div>
+      </nav>
+
+      <div class="top-bar-search-wrap">
+        <label class="visually-hidden" for="channel-search">Caută canal după nume</label>
+        <input type="search" id="channel-search" class="top-bar-search"
+               placeholder="Caută canal…" autocomplete="off" spellcheck="false"
+               enterkeyhint="search" inputmode="search" />
+      </div>
+
+      <div class="top-bar-clock">
+        <div class="top-bar-signal">
+          <div class="signal-bar active" style="height:8px"></div>
+          <div class="signal-bar active" style="height:12px"></div>
+          <div class="signal-bar active" style="height:16px"></div>
+          <div class="signal-bar active" style="height:20px"></div>
+        </div>
+        <span class="top-bar-time" id="top-bar-time">--:--</span>
+      </div>
+    </header>
+
+    <!-- Category strip (Acasă / Canale) -->
+    <div id="sub-toolbar" class="sub-toolbar" hidden>
+      <div id="category-strip" class="category-strip" role="tablist" aria-label="Filtre categorii"></div>
+      <p class="remote-hint">Tasta galbenă ★ = favorit</p>
+    </div>
+
+    <!-- Main Content Area -->
+    <main class="main-content" id="main-content">
+      <div id="view-home" class="view-panel" data-view-panel="home">
+        <div id="home-view"></div>
+      </div>
+      <div id="view-channels" class="view-panel" data-view-panel="channels" hidden>
+        <div id="channels-view"></div>
+      </div>
+      <div id="view-favorites" class="view-panel" data-view-panel="favorites" hidden>
+        <div class="favorites-header">
+          <h2 class="favorites-title">Favorite</h2>
+          <p class="favorites-sub">Canalele tale salvate local pe dispozitiv</p>
+        </div>
+        <div id="favorites-grid" class="channel-grid" role="list"></div>
+        <p id="favorites-empty" class="empty-state" hidden>Niciun favorit. Apasă tasta galbenă în timpul redării sau focalizează un card și apasă galben.</p>
+      </div>
+      <div id="view-settings" class="view-panel" data-view-panel="settings" hidden>
+        <div class="settings-placeholder">
+          <h2>Setări</h2>
+          <p>URL backend: vezi <code>js/cache.js</code> / date aplicație.</p>
+        </div>
+      </div>
+    </main>
+
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       VIDEO PLAYER
+       ═══════════════════════════════════════════ -->
+  <div id="player-view" class="player-view">
+    <video id="player-video" class="player-video" autoplay playsinline></video>
+
+    <!-- Player Overlay -->
+    <div id="player-overlay" class="player-overlay">
+      <!-- Top Info -->
+      <div class="player-overlay-top">
+        <div class="player-channel-info">
+          <img id="player-ch-logo" class="player-channel-logo" src="" alt="">
+          <span id="player-ch-name" class="player-channel-name"></span>
+          <span id="player-ch-quality" class="player-channel-quality">HD</span>
+        </div>
+        <div class="player-live-indicator">
+          <span class="player-live-dot"></span>
+          LIVE
+        </div>
+      </div>
+
+      <!-- Bottom EPG -->
+      <div class="player-overlay-bottom">
+        <div class="player-epg">
+          <div class="player-epg-now">
+            <span class="player-epg-label">NOW</span>
+            <span id="player-epg-now-title" class="player-epg-title"></span>
+            <span id="player-epg-now-time" class="player-epg-time"></span>
+          </div>
+          <div class="player-epg-next">
+            <span class="player-epg-next-label">Next</span>
+            <span id="player-epg-next-title" class="player-epg-next-title"></span>
+          </div>
+        </div>
+        <div class="player-progress">
+          <div id="player-progress-fill" class="player-progress-fill" style="width:0%"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Loading Spinner -->
+    <div id="player-loading" class="player-loading">
+      <div class="player-spinner"></div>
+    </div>
+
+    <!-- Error State -->
+    <div id="player-error" class="player-error">
+      <div class="player-error-icon">⚠️</div>
+      <div id="player-error-text" class="player-error-text">Canal indisponibil</div>
+      <div class="player-error-sub">Se încearcă surse alternative...</div>
+    </div>
+
+    <!-- Channel Switcher -->
+    <div id="channel-switcher" class="channel-switcher"></div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast"></div>
+
+  <!-- ═══════════════════════════════════════════
+       SCRIPTS
+       ═══════════════════════════════════════════ -->
+  <script src="js/api.js"></script>
+  <script src="js/cache.js"></script>
+  <script src="js/remote.js"></script>
+  <script src="js/navigation.js"></script>
+  <script src="js/player.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/app.js"></script>
+
+</body>
+</html>

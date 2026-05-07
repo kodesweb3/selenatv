@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0B0B0B"/>
+      <stop offset="100%" stop-color="#050505"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#D4AF37"/>
+      <stop offset="100%" stop-color="#C6A972"/>
+    </linearGradient>
+  </defs>
+  <!-- Background -->
+  <rect width="256" height="256" rx="40" fill="url(#bg)"/>
+  <!-- Shield -->
+  <path d="M128 32L48 68V128C48 176 82 218 128 232C174 218 208 176 208 128V68L128 32Z"
+        fill="none" stroke="url(#gold)" stroke-width="4" opacity="0.4"/>
+  <path d="M128 44L58 76V128C58 170 88 208 128 222C168 208 198 170 198 128V76L128 44Z"
+        fill="rgba(198,169,114,0.06)" stroke="url(#gold)" stroke-width="2" opacity="0.25"/>
+  <!-- A Letter -->
+  <path d="M88 180L128 68L168 180" stroke="url(#gold)" stroke-width="8"
+        stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <line x1="100" y1="148" x2="156" y2="148" stroke="url(#gold)" stroke-width="6"
+        stroke-linecap="round"/>
+  <!-- Accent lines -->
+  <line x1="64" y1="108" x2="96" y2="108" stroke="url(#gold)" stroke-width="2" opacity="0.3"/>
+  <line x1="160" y1="108" x2="192" y2="108" stroke="url(#gold)" stroke-width="2" opacity="0.3"/>
+</svg>

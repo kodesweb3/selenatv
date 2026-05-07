@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+
+# Secrets
+.env
+.env.local
+*.pem
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+
+# Backend generated cache (fresh deploy runs scan / loads empty)
+aegis-tv/backend/storage/cache/*.json
+aegis-tv/backend/storage/logs/*.json
+aegis-tv/backend/storage/epg/*.json
+
+# Keep folder structure
+!aegis-tv/backend/storage/cache/.gitkeep
+!aegis-tv/backend/storage/logs/.gitkeep
+!aegis-tv/backend/storage/epg/.gitkeep

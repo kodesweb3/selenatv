@@ -1,0 +1,128 @@
+/* ═══════════════════════════════════════════════════════
+   A E G I S   T V  —  ANIMATIONS
+   CSS-only transitions for TV performance
+   ═══════════════════════════════════════════════════════ */
+
+/* ── View Transitions ── */
+.view-enter {
+  opacity: 0;
+  transform: translateX(40px);
+}
+
+.view-enter-active {
+  opacity: 1;
+  transform: translateX(0);
+  transition: opacity var(--duration-slow) var(--ease-smooth),
+              transform var(--duration-slow) var(--ease-smooth);
+}
+
+.view-exit {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.view-exit-active {
+  opacity: 0;
+  transform: translateX(-40px);
+  transition: opacity var(--duration-normal) var(--ease-smooth),
+              transform var(--duration-normal) var(--ease-smooth);
+}
+
+/* ── Card Entrance Stagger ── */
+.channel-card {
+  opacity: 0;
+  transform: translateY(16px);
+}
+
+.channel-card.loaded {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity var(--duration-normal) var(--ease-smooth),
+              transform var(--duration-normal) var(--ease-smooth);
+}
+
+/* Stagger delays */
+.channel-card:nth-child(1).loaded { transition-delay: 0ms; }
+.channel-card:nth-child(2).loaded { transition-delay: 40ms; }
+.channel-card:nth-child(3).loaded { transition-delay: 80ms; }
+.channel-card:nth-child(4).loaded { transition-delay: 120ms; }
+.channel-card:nth-child(5).loaded { transition-delay: 160ms; }
+.channel-card:nth-child(6).loaded { transition-delay: 200ms; }
+.channel-card:nth-child(7).loaded { transition-delay: 240ms; }
+
+/* ── Hero Fade ── */
+.hero-section {
+  opacity: 0;
+  transition: opacity var(--duration-slow) var(--ease-smooth);
+}
+
+.hero-section.visible {
+  opacity: 1;
+}
+
+/* ── Overlay Slide ── */
+.player-overlay-top {
+  transform: translateY(-20px);
+  transition: transform var(--duration-normal) var(--ease-smooth),
+              opacity var(--duration-normal) var(--ease-smooth);
+}
+
+.player-overlay.visible .player-overlay-top {
+  transform: translateY(0);
+}
+
+.player-overlay-bottom {
+  transform: translateY(20px);
+  transition: transform var(--duration-normal) var(--ease-smooth),
+              opacity var(--duration-normal) var(--ease-smooth);
+}
+
+.player-overlay.visible .player-overlay-bottom {
+  transform: translateY(0);
+}
+
+/* ── Shimmer Loading ── */
+@keyframes shimmer {
+  0% { background-position: -200px 0; }
+  100% { background-position: 200px 0; }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, var(--surface) 0%, var(--surface2) 50%, var(--surface) 100%);
+  background-size: 400px 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: var(--radius-sm);
+}
+
+/* ── Notification Toast ── */
+.toast {
+  position: fixed;
+  bottom: var(--spacing-2xl);
+  left: 50%;
+  transform: translateX(-50%) translateY(60px);
+  padding: var(--spacing-md) var(--spacing-xl);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  backdrop-filter: blur(20px);
+  color: var(--text);
+  font-size: 14px;
+  z-index: 9000;
+  opacity: 0;
+  transition: transform var(--duration-normal) var(--ease-smooth),
+              opacity var(--duration-normal) var(--ease-smooth);
+  pointer-events: none;
+}
+
+.toast.visible {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
+
+.toast.success {
+  border-color: rgba(91, 140, 90, 0.3);
+}
+
+.toast.error {
+  border-color: rgba(154, 59, 59, 0.3);
+}
